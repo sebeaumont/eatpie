@@ -1,0 +1,237 @@
+#lang pie
+
+
+;;; eliminate all the Nats
+
+(claim  step-+ (-> Nat Nat))
+(define step-+
+  (λ (n-1)
+    (add1 n-1)))
+
+(claim  + (-> Nat Nat Nat))
+(define +
+  (λ (n m)
+    (iter-Nat n
+      m
+      step-+)))
+
+(claim  step-gauss (-> Nat Nat Nat))
+(define step-gauss
+  (λ (n-1 gauss-n-1)
+    (+ (add1 n-1) gauss-n-1)))
+
+(claim  gauss (-> Nat Nat))
+(define gauss
+  (λ (n)
+    (rec-Nat n
+      0
+      step-gauss)))
+
+
+(claim  step-* (-> Nat Nat Nat Nat))
+(define step-*
+  (λ (m)
+    (λ (n-1 *-n-1)
+      (+ m *-n-1))))
+
+(claim  * (-> Nat Nat Nat))
+(define *
+  (λ (n m)
+    (rec-Nat n
+      0
+      (step-* m))))
+
+
+(claim  step-fac (-> Nat Nat Nat))
+(define step-fac
+  (λ (n-1 fac-1)
+    (* (add1 n-1) fac-1)))
+
+(claim fac (-> Nat Nat))
+(define fac
+  (λ (n)
+    (rec-Nat n
+      1
+      step-fac)))
+       
+;; Takes the type of each of the pair 
+(claim  flip-Pair
+  (Π ((A U)
+      (D U))
+    (→ (Pair A D)
+      (Pair D A))))
+(define flip-Pair
+  (λ (A D)
+    (λ (p)
+      (cons (cdr p) (car p)))))
+
+;;; Eliminator for Pair
+(claim elim-Pair
+  (Π ((A U)            ; type of fst
+      (D U)            ; type of snd
+      (X U))           ; type of result
+    (→ (Pair A D)      ; Pair : (A, D)
+      (→ A D X)        ; f : A → D → X
+      X)))             ; X
+(define elim-Pair
+  (λ (A D X)
+    (λ (p f)
+      (f (car p) (cdr p)))))
+
+;; eg
+(check-same
+ Nat 
+ ((elim-Pair Nat Nat Nat)
+  (cons 2 3) (lambda (a b) (+ a b)))
+ 5)
+
+(check-same
+ Nat 
+ ((elim-Pair Nat Nat Nat) (cons 2 3) +)
+ 5)
+
+;;; Lists
+
+(claim step-append
+  (Π ((E U))
+    (→ E (List E) (List E)
+       (List E))))
+    
+(define step-append
+  (λ (E)
+    (λ (e es append-es)
+      (:: e append-es))))
+
+;; Append two lists
+(claim  append
+  (Π ((E U))
+    (→ (List E) (List E)
+       (List E))))
+(define append
+  (λ (E)
+    (λ (start end)
+      (rec-List start
+        end
+        (step-append E)))))
+
+;;; pairs of lists 
+(check-same
+ (List Nat)
+ ((elim-Pair
+   (List Nat)
+   (List Nat)
+   (List Nat))
+  (cons (:: 2 (:: 5 nil)) (:: 3 nil))
+  (append Nat))
+ (:: 2 (:: 5 (:: 3 nil))))
+
+
+;; snoc appends an element at end of list
+(claim  snoc
+  (Π ((E U))
+    (→ (List E) E
+       (List E))))
+(define snoc
+  (λ (E)
+    (λ (start e)
+      (rec-List start
+        (:: e nil)
+        (step-append E)))))
+
+(claim  step-reverse
+  (Π ((E U))
+    (→ E (List E) (List E)
+       (List E))))
+(define step-reverse
+  (λ (E)
+    (λ (e es reverse-es)
+      (snoc E reverse-es e))))
+
+(claim  reverse
+  (Π ((E U))
+    (→ (List E)
+      (List E))))
+(define reverse
+  (λ (E)
+    (λ (es)
+      (rec-List es
+        (the (List E) nil)   ; Pie can't infer this type on its own
+        (step-reverse E)))))
+
+
+;;; dependant types based on Vec E Nat
+;;; safe head for vectors Vec E (add1 n)
+
+(claim  first
+  (Π ((E U)
+      (l Nat))
+    (-> (Vec E (add1 l))
+      E)))
+(define first
+  (λ (E l)
+    (λ (es)
+      (head es))))
+
+(claim  rest
+  (Π ((E U)
+      (l Nat))
+    (→ (Vec E (add1 l))
+      (Vec E l))))
+(define rest
+  (λ (E l)
+    (λ (es)
+      (tail es))))
+
+;; Can we write repeat n for a constant of type
+;; using ind-Nat?
+
+;; the ind-Nat motive is k:Nat → U (some type depending on k) but we
+;; will need to paritally apply the type of the element E:U.
+(claim  mot-repeat
+  (→ U
+    (→ Nat U)))
+;; the motive is Nat -> Vec E Nat
+(define mot-repeat
+  (λ (E k)
+    (Vec E k)))
+
+;; at each step we take a (Vec E l-1) and produce a (Vec E l) but we
+;; need to partially apply the type of element E and e:E itself in
+;; order to construct the correct motive and cons the element onto the
+;; larger vector.
+(claim  step-repeat
+  (Π ((E U)
+      (e E)
+      (l-1 Nat))
+    (→ (mot-repeat E l-1)
+      (mot-repeat E (add1 l-1)))))
+
+(define step-repeat
+  (λ (E e l-1)
+    (λ (repeat-l-1)
+      (vec:: e repeat-l-1))))
+
+;; Finally we can apply the required type E:U, element e:E and K:Nat
+;; to ind-Nat motive and step functions. 
+(claim  repeat
+  (Π ((E U)
+      (e E)
+      (k Nat))
+    (Vec E k)))
+(define repeat
+  (λ (E e k)
+    (ind-Nat k
+      (mot-repeat E)  
+      vecnil
+      (step-repeat E e))))
+
+;; Yay I'll be little typer yet!  We could pass in the type/value
+;; constructor and unit to be fully generic...(Vec, vec::, vecnil)?
+
+
+
+
+      
+      
+
+      
