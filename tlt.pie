@@ -227,11 +227,3 @@
 
 ;; Yay I'll be little typer yet!  We could pass in the type/value
 ;; constructor and unit to be fully generic...(Vec, vec::, vecnil)?
-
-
-
-
-      
-      
-
-      
