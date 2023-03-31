@@ -1,7 +1,7 @@
 #lang pie
 
 
-;;; eliminate all the Nats
+;;; eleminate all the Nats
 
 (claim  step-+ (-> Nat Nat))
 (define step-+
@@ -393,18 +393,30 @@
   (Π ((n Nat))
     (= Nat (+ 1 n) (add1 n))))
 
+;; definitionally?
 (define +1=add1
   (λ (n)
     (same (add1 n))))
 
-;; this should also be true
+;; also successor is equal to add1 
+
+(claim suc=add1
+  (Π ((n Nat))
+    (= Nat (suc n) (add1 n))))
+
+;; definitionally?
+(define suc=add1
+  (λ (n)
+    (same (add1 n))))
+
+;; We claim the following should also be true
 
 (claim incr=add1
   (Π ((n Nat))
     (= Nat (incr n) (add1 n))))
 
-;; because (incr n)'s normal form is neutral (cannot yet be evaluated)
-;; we have to work harder for an inductive proof...
+;; but because (incr n)'s normal form is neutral (cannot yet be evaluated)
+;; we have to work harder to provide an inductive proof...
 
 (claim mot-incr=add1
   (→ Nat
