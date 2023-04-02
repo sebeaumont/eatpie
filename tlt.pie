@@ -234,9 +234,10 @@
       (mot-repeat E)  
       vecnil
       (step-repeat E e))))
+;; Yay I'll be little typer yet!  We could have passed in the type and
+;; value constructors along with the base/unit to be fully
+;; generic. e.g. (Vec, vec::, vecnil)
 
-;; Yay I'll be little typer yet!  We could pass in the type/value
-;; constructor and unit to be fully generic...(Vec, vec::, vecnil)?
 
 (claim repeat-with
   (Π ((E U)
@@ -462,7 +463,7 @@
 ;;       (cong incr=add1-n-1 (+ 1)))))
 
 
-;; TODO alternate using:  replace
+;; alternative using the more general elimintator - replace
 (claim mot-step-incr=add1
   (→ Nat Nat
      U))
