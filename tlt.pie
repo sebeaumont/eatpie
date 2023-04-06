@@ -1,9 +1,11 @@
 #lang pie
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; Some examples and exercises from the Little Typer
+;; Some examples and exercises from the Little Typer
+;; Author: Simon Beaumont
+;; Date: Spring 2023
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;;; eliminate all the Nats
+;; eliminate all the Nats
 
 (claim  step-+ (-> Nat Nat))
 (define step-+
@@ -482,12 +484,129 @@
         (same (add1 (incr n-1)))))))
 
 ;; finally a proof that incr=add1
-
 (define incr=add1
   (λ (n)
     (ind-Nat n
       mot-incr=add1
       base-incr=add1
       step-incr=add1)))
+
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; here we go Nats again...
+
+(claim double
+  (→ Nat
+    Nat))
+
+;; add 2 to zero n times! 
+(define double
+  (λ (n)
+    (iter-Nat n
+      0
+      (+ 2))))
+
+(claim twice
+  (→ Nat
+    Nat))
+
+(define twice
+  (λ (n)
+    (+ n n)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; this seems like an reasonable claim to make
+(claim twice=double
+  (Π ((n Nat))
+    (= Nat (twice n) (double n)))) 
+
+;; now prove it!
+;; So 
+;; (twice zero) == (double zero)
+;; (twice (add1 n-1)) == (double (add1 n-1))
+;;   but what about the types?
+
+;; we need this lemma...
+(claim add1+=+add1
+  (Π ((n Nat)
+      (j Nat))
+    (= Nat
+       (add1 (+ n j))
+       (+ n (add1 j)))))
+
+;; a job for ind-Nat - need a motive
+(claim mot-add1+=+add1
+  (→ Nat Nat
+     U))
+
+(define mot-add1+=+add1
+  (λ (j k)
+    (= Nat
+       (add1 (+ k j))
+       (+ k (add1 j)))))
+
+(claim step-add1+=+add1
+  (Π ((j Nat)
+      (n-1 Nat))
+    (→ (mot-add1+=+add1 j n-1)
+      (mot-add1+=+add1 j (add1 n-1)))))
+                        
+(define step-add1+=+add1
+  (λ (j n-1)
+    (λ (add1+=+add1-n-1)
+      (cong add1+=+add1-n-1
+        (+ 1)))))
+
+(define add1+=+add1
+  (λ (n j)
+    (ind-Nat n
+      (mot-add1+=+add1 j)
+      (same (add1 j))
+      (step-add1+=+add1 j))))
+
+;; omg the gift that keeps on giving...
+
+(claim mot-twice=double
+  (→ Nat
+    U))
+
+(define mot-twice=double
+  (λ (k)
+    (= Nat
+       (twice k)
+       (double k))))
+
+(claim step-twice=double
+  (Π ((n-1 Nat))
+    (→ (mot-twice=double n-1)
+      (mot-twice=double (add1 n-1)))))
+
+(claim mot-step-twice=double
+  (→ Nat Nat
+     U))
+
+(define mot-step-twice=double
+  (λ (n-1 k)
+    (= Nat
+       (add1 k)
+       (add1 (add1 (double n-1))))))
+
+(define step-twice=double
+  (λ (n-1)
+    (λ (twice=double-n-1)
+      (replace (add1+=+add1 n-1 n-1)
+        (mot-step-twice=double n-1)
+        (cong twice=double-n-1
+          (+ 2))))))
+      
+(define twice=double
+  (λ (n)
+    (ind-Nat n
+      mot-twice=double
+      (same zero)
+      step-twice=double)))
+
+;; wtf really? at this point I seriously doubted my resolve to
+;; continue on this quest and took a holiday...
 
 
